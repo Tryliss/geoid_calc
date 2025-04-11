@@ -15,7 +15,7 @@ R = 6378136.3
 GM = 3.986004415E+14
 
 # Extracting static gravity model file coefficients
-gravity_model_file = 'SGG-UGM-2.gfc'
+gravity_model_file = '/home/christian/SGG-UGM-2.gfc'
 Ylms = read_ICGEM_harmonics(gravity_model_file, TIDE='mean_tide', lmax=lmax, ELLIPSOID='GRS80')
 
 clm = Ylms['clm']
@@ -90,9 +90,13 @@ def read_topography_harmonics(model_file):
     model_input: dict
         Dictionary containing the spherical harmonic coefficients and model parameters.
     """
-    dinput = np.fromfile(model_file, dtype=np.dtype('<f8'))
-    header = 2
-    input_lmin, input_lmax = dinput[:header].astype(np.int64)
+
+    def read_file_chunk(start, end):
+        return np.fromfile(model_file, dtype=np.dtype('<f8'), count=end - start, offset=start)
+
+    header_size = 2 * np.dtype('<f8').itemsize
+    dinput_header = np.fromfile(model_file, dtype=np.dtype('<f8'), count=2)
+    input_lmin, input_lmax = dinput_header.astype(np.int64)
     n_down = ((input_lmin - 1) ** 2 + 3 * (input_lmin - 1)) // 2 + 1
     n_up = (input_lmax ** 2 + 3 * input_lmax) // 2 + 1
     n_harm = n_up - n_down
@@ -106,14 +110,22 @@ def read_topography_harmonics(model_file):
     model_input['m'] = np.arange(input_lmax + 1)
     model_input['clm'] = np.zeros((input_lmax + 1, input_lmax + 1))
     model_input['slm'] = np.zeros((input_lmax + 1, input_lmax + 1))
-    model_input['clm'][ii, jj] = dinput[header:(header + n_harm)]
-    model_input['slm'][ii, jj] = dinput[(header + n_harm):(header + 2 * n_harm)]
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_clm = executor.submit(read_file_chunk, header_size, header_size + n_harm * np.dtype('<f8').itemsize)
+        future_slm = executor.submit(read_file_chunk, header_size + n_harm * np.dtype('<f8').itemsize,
+                                     header_size + 2 * n_harm * np.dtype('<f8').itemsize)
+        clm_data = future_clm.result()
+        slm_data = future_slm.result()
+
+    model_input['clm'][ii, jj] = clm_data
+    model_input['slm'][ii, jj] = slm_data
 
     return model_input
 
 
 # Example usage
-model_file = 'dV_ELL_EARTH2014.bshc'
+model_file = '/home/christian/dV_ELL_EARTH2014.bshc'
 model_input = read_topography_harmonics(model_file)
 
 tclm = model_input['clm']
