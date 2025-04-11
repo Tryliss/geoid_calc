@@ -15,7 +15,7 @@ R = 6378136.3
 GM = 3.986004415E+14
 
 # Extracting static gravity model file coefficients
-gravity_model_file = '/home/christian/SGG-UGM-2.gfc'
+gravity_model_file = 'SGG-UGM-2.gfc'
 Ylms = read_ICGEM_harmonics(gravity_model_file, TIDE='mean_tide', lmax=lmax, ELLIPSOID='GRS80')
 
 clm = Ylms['clm']
@@ -125,8 +125,7 @@ def read_topography_harmonics(model_file):
 
 
 # Example usage
-model / dV_ELL_EARTH2014.bshc
-'
+model_file = 'dV_ELL_EARTH2014.bshc'
 model_input = read_topography_harmonics(model_file)
 
 tclm = model_input['clm']
