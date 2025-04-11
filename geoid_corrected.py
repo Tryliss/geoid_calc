@@ -125,7 +125,8 @@ def read_topography_harmonics(model_file):
 
 
 # Example usage
-model_file = '/home/christian/dV_ELL_EARTH2014.bshc'
+model / dV_ELL_EARTH2014.bshc
+'
 model_input = read_topography_harmonics(model_file)
 
 tclm = model_input['clm']
